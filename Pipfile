@@ -1,0 +1,24 @@
+[[source]]
+
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+requests = "*"
+boto3 = "*"
+
+[dev-packages]
+pytest = "*"
+pytest-cov = "*"
+mock = "*"
+black = "*"
+coverage = "*"
+flake8 = "*"
+isort = "*"
+ruff = "*"
+moto = {extras = ["all"], version = "*"}
+boto3-stubs = {extras = ["ec2"], version = "*"}
+
+[requires]
+python_version = "3.7"
