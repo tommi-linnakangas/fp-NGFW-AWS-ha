@@ -1,4 +1,5 @@
 import io
+import ipaddress
 import sys
 from dataclasses import dataclass
 from typing import Any, Dict
@@ -81,6 +82,9 @@ class HAScriptConfig:
     # status of the engine
     status: str = ""
 
+    # set to true to run in dry-run mode, no changes to the system are make
+    dry_run: bool = False
+
 
 MANDATORY_PROPERTIES = [
     "route_table_id",
@@ -133,23 +137,31 @@ def _validate_config(config_data) -> None:
 
     for key in MANDATORY_PROPERTIES:
         if key not in config_data or config_data[key] == "" or config_data[key] is None:
-            raise HAScriptConfigError(f"Mandatory config entry '{key}' missing")
+            raise HAScriptConfigError(f"Mandatory property is missing: {key}")
 
     if not config_data["route_table_id"].startswith("rtb-"):
         raise HAScriptConfigError(
-            "route_table_id should start with 'rtb-' (currently {})".format(
-                config_data["route_table_id"]
-            )
+            f"Value for 'route_table_id' should start with 'rtb-': "
+            f"{config_data["route_table_id"]}"
         )
+
+    if config_data.get("probe_ip"):
+        try:
+            ipaddress.ip_address(config_data["probe_ip"])
+        except ValueError:
+            raise HAScriptConfigError(
+                f"Value for 'probe_ip' is not an IP address: {config_data["probe_ip"]}")
 
     if config_data.get("remote_probe_enabled") and not config_data.get("remote_probe_ip"):
-        raise HAScriptConfigError("Missing mandatory property 'remote_probe_ip'")
+        raise HAScriptConfigError("Mandatory property is missing: remote_probe_ip")
 
-    if not config_data.get("remote_probe_enabled") and config_data.get("remote_probe_ip"):
-        raise HAScriptConfigError(
-            "Inconsistent config: 'remote_probe_ip' property is set but "
-            "remote_probe_enabled is false"
-        )
+    if config_data.get("remote_probe_ip"):
+        try:
+            ipaddress.ip_address(config_data["remote_probe_ip"])
+        except ValueError:
+            raise HAScriptConfigError(
+                f"Value for 'remote_probe_ip' is not an IP address: "
+                f"{config_data["remote_probe_ip"]}")
 
 
 def load_config(tags: Dict[str, Any]) -> HAScriptConfig:
@@ -181,7 +193,7 @@ def load_config(tags: Dict[str, Any]) -> HAScriptConfig:
             config_data[key] = int(value)
 
         if key in ("probe_enabled", "remote_probe_enabled",
-                   "disabled", "debug"):
+                   "disabled", "debug", "dry_run"):
             config_data[key] = value.lower() == "true"
 
     _validate_config(config_data)

@@ -1,4 +1,3 @@
-import sys
 import time
 from typing import List
 from botocore.exceptions import BotoCoreError
@@ -22,7 +21,7 @@ from aws_ha_script.ngfw_utils import (
     is_primary,
     set_local_status,
 )
-from aws_ha_script.smc_events import send_notification_to_smc
+from aws_ha_script.smc_events import send_error_to_smc,  send_notification_to_smc
 from aws_ha_script.tcp_probing import tcp_probe
 
 
@@ -87,15 +86,18 @@ def primary_main_loop_handler(config: HAScriptConfig, ec2: EC2ResourceType,
     """
     local_status = get_local_status()
     if not local_status:
-        logger.error("Failed to get local status. HA script is not working properly.")
+        send_error_to_smc(config, "Failed to get local status. HA script is not working properly.")
         return
+
+    if ctx.prev_local_status is None:
+        ctx.prev_local_status = local_status
 
     if ctx.prev_local_status != local_status:
         logger.info("Notify secondary engine about status change: %s -> %s",
                     ctx.prev_local_status, local_status)
         # We change the previous status only in case of success, so that if we fail to set
         # the tag, it has a chance to succeed on the next iteration.
-        if set_config_tag(ec2, "status", local_status):
+        if set_config_tag(config, ec2, "status", local_status):
             ctx.prev_local_status = local_status
             ctx.display_info_needed = True
 
@@ -104,7 +106,7 @@ def primary_main_loop_handler(config: HAScriptConfig, ec2: EC2ResourceType,
         # (see config.probe_max_fail). We set the primary offline so that the secondary takes
         # over.
         local_status = "offline"
-        set_local_status(local_status)
+        set_local_status(config, local_status)
         send_notification_to_smc(
             config,
             f"Primary '{config.primary_instance_id}' changed to offline because "
@@ -134,13 +136,14 @@ def primary_main_loop_handler(config: HAScriptConfig, ec2: EC2ResourceType,
                 # Setting the node online requires human intervention
                 # (from the smc or using "sg-cluster" command).
                 local_status = "offline"
-                set_local_status(local_status)
+                set_local_status(config, local_status)
                 send_notification_to_smc(
                     config,
                     f"Primary '{config.primary_instance_id}' address '{local_ip}' "
                     f"is no longer active, state changed to offline.",
                     alert=True)
-            ctx.prev_local_active = local_is_active
+            if not config.dry_run:
+                ctx.prev_local_active = local_is_active
             ctx.display_info_needed = True
 
         need_reroute = local_status == "online" and not local_is_active
@@ -195,8 +198,11 @@ def secondary_main_loop_handler(config: HAScriptConfig, ec2: EC2ResourceType,
     """
     local_status = get_local_status()
     if not local_status:
-        logger.error("Failed to get local status. HA script not working properly.")
+        send_error_to_smc(config, "Failed to get local status. HA script is not working properly.")
         return
+
+    if ctx.prev_local_status is None:
+        ctx.prev_local_status = local_status
 
     if ctx.prev_local_status != local_status:
         ctx.prev_local_status = local_status
@@ -287,18 +293,14 @@ def mainloop(config: HAScriptConfig, ec2: EC2ResourceType):
 
     logger.info("Role is '%s'", "primary" if is_primary(config) else "secondary")
 
-    try:
-        (local_eni_id, local_ip) = get_eni(ec2, config.internal_nic_idx)
-    except HAScriptError as exc:
-        logger.critical("%s", exc)
-        sys.exit(1)
-
+    local_eni_id, local_ip = get_eni(ec2, config.internal_nic_idx)
     ctx = HAScriptContext()
 
     while is_running():
         try:
             main_loop_handler(config, ec2, local_eni_id, local_ip, ctx)
-        except (HAScriptError, BotoClientError, BotoCoreError) as error:
-            logger.exception("Unexpected exception, error: %s", error)
+        except (HAScriptError, BotoClientError, BotoCoreError) as exc:
+            logger.exception("Got unexpected exception.", exc_info=True)
+            send_error_to_smc(config, f"HA not working. Unexpected exception: {exc}")
         finally:
             time.sleep(config.check_interval_sec)

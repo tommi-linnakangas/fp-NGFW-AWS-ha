@@ -48,9 +48,16 @@ def send_event_to_smc(config: HAScriptConfig, message: str,
     :param event_number: the event number
     :param alert: indicates whether the event is an alert
     """
-    log_facility = config.log_facility if config.log_facility is not None else -1
+    if config is not None and config.log_facility is not None:
+        log_facility = config.log_facility
+    else:
+        log_facility = -1
+
     if facility < 0:
         facility = SMCEventFacility.USER_DEFINED if log_facility < 0 else log_facility
+
+    if config is not None and config.dry_run:
+        message = "DRY-RUN: " + message
 
     cmd_args = [
         "/usr/sbin/sg-logger", "-f", str(facility), "-t", str(event_type),
@@ -65,14 +72,14 @@ def send_event_to_smc(config: HAScriptConfig, message: str,
         if exit_status != 0:
             logger.error("Failed to send event: exit status=%d", exit_status)
     except Exception:  # noqa: BLE001
-        logger.exception("Failed to send event.")
+        logger.exception("Failed to send event.", exc_info=True)
 
 
-def send_notification_to_smc(config, message, alert: bool = False):
+def send_notification_to_smc(config: HAScriptConfig, message: str, alert: bool = False):
     logger.info(message)
     send_event_to_smc(config, "AWS-HA: " + message, alert=alert)
 
 
-def send_error_to_smc(config, message):
+def send_error_to_smc(config: HAScriptConfig, message: str):
     logger.error(message)
     send_event_to_smc(config, "AWS-HA: " + message, SMCEventType.CRITICAL_ERROR, alert=True)

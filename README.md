@@ -91,7 +91,7 @@ The following steps must be done when releasing the new version of the script:
 
 1. Change version in `ha-script/src/aws_ha_script/script.py`, e.g.:
    ```
-   __VERSION__ = "1.1.2"
+   __VERSION__ = "1.1.4"
    ```
 2. Run tests, build documents and deliverables.
    ```
@@ -106,7 +106,7 @@ The following steps must be done when releasing the new version of the script:
    ```
 4. Create pull-request and wait until the pull-request is approved.
 5. Go to GitHub page and click *Create new release*.
-6. Create new tag, e.g. `v1.1.2`.
+6. Create new tag, e.g. `v1.1.4`.
 7. Type *Release title* and *Description*.
 8. Upload the deliveries.
   - `ha-script/dist/aws_ha_script_installer.py`

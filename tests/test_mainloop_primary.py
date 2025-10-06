@@ -119,7 +119,7 @@ def test_offline_to_online_success(
     # logmsgs = [r.message for r in caplog.records]
 
     # make sure the standby is notified via tag change
-    set_config_tag.assert_called_once_with(ec2, "status", "online")
+    set_config_tag.assert_called_once_with(config, ec2, "status", "online")
 
     update_route_table.assert_called_once_with(
         config, ec2, "rtb-0869eb690cef8c3a6", "0.0.0.0/0", primary_eni_id
@@ -190,7 +190,7 @@ def test_offline_to_online_success_moto(
     primary_main_loop_handler(config, ec2, primary_eni_id, primary_ip, ctx)
 
     # make sure the standby is notified via tag change
-    set_config_tag.assert_called_once_with(ec2, "status", "online")
+    set_config_tag.assert_called_once_with(config, ec2, "status", "online")
 
     # make sure route table updated
     ec2conf.protected_route_table.reload()
@@ -330,7 +330,7 @@ def test_online_to_offline_success(
     # logmsgs = [r.message for r in caplog.records]
 
     # make sure the standby is notified via tag change
-    set_config_tag.assert_called_once_with(ec2, "status", "offline")
+    set_config_tag.assert_called_once_with(config, ec2, "status", "offline")
 
     # make sure no rerouting takes place
     assert len(send_notification_to_smc.mock_calls) == 0
@@ -391,7 +391,7 @@ def test_fail_to_change_status(
     # logmsgs = [r.message for r in caplog.records]
 
     # make sure the standby is notified via tag change
-    set_config_tag.assert_called_once_with(ec2, "status", "offline")
+    set_config_tag.assert_called_once_with(config, ec2, "status", "offline")
     # this is the important part: prev status remains "online" so
     # that the
     assert ctx.prev_local_status == "online"
