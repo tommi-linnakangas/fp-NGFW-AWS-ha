@@ -32,7 +32,8 @@ logging.basicConfig(
 
 def main():
     try:
-        subprocess.call(["/bin/msvc", "-d", "user_hook"])
+        logging.info("Stop user_hook")
+        subprocess.call(["/bin/msvc", "-D", "user_hook"])
         allow_file = os.path.realpath(__file__) + "_allow"
 
         with open(allow_file, "r") as fp:
@@ -44,12 +45,15 @@ def main():
                     logging.info("run-at-boot script uninstalled")
                     return 0
 
+        logging.info("Create %s", DEST_SCRIPT_FILE)
         with open(DEST_SCRIPT_FILE, "wb+") as fp:
             fp.write(decoded)
 
         os.chmod(DEST_SCRIPT_FILE, 0o755);
+        logging.info("Create %s", DEST_SCRIPT_FILE + "_allow")
         shutil.copy2(allow_file, DEST_SCRIPT_FILE + "_allow")
 
+        logging.info("Start user_hook")
         subprocess.check_call(["/bin/msvc", "-u", "user_hook"])
         logging.info("run-at-boot script installed")
     except:

@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.4] - 2025-10-10
+
+- better exception handling
+- send all error messages to SMC
+- add dry_run mode, which makes it possible to run the script so that
+  it does not change the system (node state or route tables)
+- add new property:
+  - dry_run
+- fix installer to stop the running script more reliable
+- check configured instance ids against real instance ids
+- add more unit tests for configuration
+
+## [1.1.3] - 2024-10-14
+
+- code cleanup and refactoring
+- first public release
+
+## [1.1.2] - 2024-09-30
+
+- code cleanup and refactoring
+
 ## [1.1.0] - 2024-01-17
 
 - python 3.7

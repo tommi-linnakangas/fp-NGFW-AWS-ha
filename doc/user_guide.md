@@ -358,5 +358,14 @@ enabled in the custom property profile settings. This is done by adding a
 custom property **debug:True** to the custom properties profile, and installing
 the policy.
 
-**Note** The debug mode should be disable after the troubleshooting has been
+**Note** The debug mode should be disabled after the troubleshooting has been
 done to avoid generating unnecessary debug level messages.
+
+### Enable the Dry-Run Mode
+
+Dry-run mode does not modify the system. Node state is not changed and route
+tables are not updated. To enable dry-run mode add a custom property
+**dry_run:True** to the custom properties profile and install the policy.
+
+**Note** The dry-run mode should be disabled after the troubleshooting has been
+done to let the script perform changes to the system.

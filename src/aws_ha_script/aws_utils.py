@@ -73,16 +73,12 @@ def get_instance_id() -> str:
 
 
 def get_aws_region_name() -> Optional[str]:
-    try:
-        dyn_doc_url = f"{EC2_METADATA_URL_BASE}/dynamic/instance-identity/document"
-        text_result = get_metadata(dyn_doc_url)
-        json_result = json.loads(text_result) if text_result else None
-        region = json_result.get("region") if json_result else None
-        logger.debug("AWS region: %s", region)
-        return region
-    except Exception:  # noqa: BLE001
-        logger.exception("Failed to get AWS region from metadata.")
-        return None
+    dyn_doc_url = f"{EC2_METADATA_URL_BASE}/dynamic/instance-identity/document"
+    text_result = get_metadata(dyn_doc_url)
+    json_result = json.loads(text_result) if text_result else None
+    region = json_result.get("region") if json_result else None
+    logger.debug("AWS region: %s", region)
+    return region
 
 
 def get_config_tags(ec2: EC2ResourceType, instance_id: Optional[str] = None) -> Dict[str, Any]:
@@ -123,15 +119,15 @@ def get_config_tag_value(ec2: EC2ResourceType, tag: str,
     tags = get_config_tags(ec2, instance_id)
     if tag in tags:
         return tags[tag]
-    logger.debug("EC2 instance tag not found, instance_id: %s, tag: %s",
-                 instance_id, tag)
+    logger.debug("EC2 instance tag not found, instance_id: %s, tag: %s", instance_id, tag)
     return None
 
 
-def set_config_tag(ec2: EC2ResourceType, tag: str, value: str,
+def set_config_tag(config: HAScriptConfig, ec2: EC2ResourceType, tag: str, value: str,
                    instance_id: Optional[str] = None) -> bool:
     """Add a tag to the EC2 instance.
 
+    :param config: configuration from the main program
     :param ec2: boto3 EC2 resource
     :param tag: tag name
     :param value: value to set
@@ -140,13 +136,17 @@ def set_config_tag(ec2: EC2ResourceType, tag: str, value: str,
 
     The `tag` parameter will be prefixed with when set to the instance `FP_HA_`.
     """
+    if config.dry_run:
+        logger.warning("DRY-RUN: Do not modify instance tag, key: FP_HA_%s, value: %s", tag, value)
+        return True
+
     try:
         if not instance_id:
             instance_id = get_metadata_value("instance-id")
         ec2.create_tags(Resources=[instance_id], Tags=[{"Key": f"FP_HA_{tag}", "Value": value}])
         return True
-    except (BotoClientError, BotoCoreError):
-        logger.exception("set_config_tag failed.")
+    except (BotoClientError, BotoCoreError) as boto_error:
+        send_error_to_smc(config, f"Failed to set AWS EC2 tag: {boto_error}")
         return False
 
 
@@ -244,6 +244,10 @@ def update_route_table(config: HAScriptConfig, ec2: EC2ResourceType, route_table
     :param eni_id: ENI id to be associated with the route
     :return: True if the update is successful, False otherwise.
     """
+    if config.dry_run:
+        logger.warning("DRY-RUN: Do not modify route, dest: %s, eni_id: %s", dest, eni_id)
+        return True
+
     try:
         route_obj = ec2.Route(route_table_id, dest)
         logger.info("Modifying route, dest: %s, eni_id: %s", dest, eni_id)
@@ -251,7 +255,7 @@ def update_route_table(config: HAScriptConfig, ec2: EC2ResourceType, route_table
         logger.info("Modifying route done.")
         return True
     except (BotoClientError, BotoCoreError) as boto_error:
-        send_error_to_smc(config, f"Update route failed: {boto_error}")
+        send_error_to_smc(config, f"Failed to update route: {boto_error}")
         return False
 
 

@@ -38,7 +38,8 @@ def tcp_probe(config: HAScriptConfig, ip_addresses: List[str], port: int,
             # We typically receive a TimeoutError, which is a subclass of OSError
             # (see https://docs.python.org/3/library/socket.html).
             if ctx.probe_fail_count == 0:
-                logger.exception("TCP probing failed, ip_address: %s, port: %d", ip_address, port)
+                logger.exception("TCP probing failed, ip_address: %s, port: %d", ip_address, port,
+                                 exc_info=True)
         else:
             return True
 
