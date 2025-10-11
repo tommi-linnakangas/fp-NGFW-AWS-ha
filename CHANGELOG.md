@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.1.4] - 2025-10-10
+## [1.2.0] - 2025-10-11
 
 - better exception handling
 - send all error messages to SMC
