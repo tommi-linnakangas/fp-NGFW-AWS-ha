@@ -20,7 +20,7 @@ from aws_ha_script.mainloop import mainloop
 from aws_ha_script.ngfw_utils import is_primary
 from aws_ha_script.smc_events import send_error_to_smc, send_notification_to_smc
 
-__VERSION__ = "1.1.4"
+__VERSION__ = "1.2.0"
 
 
 def parse_args() -> argparse.Namespace:
