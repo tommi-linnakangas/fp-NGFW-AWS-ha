@@ -142,7 +142,7 @@ def _validate_config(config_data) -> None:
     if not config_data["route_table_id"].startswith("rtb-"):
         raise HAScriptConfigError(
             f"Value for 'route_table_id' should start with 'rtb-': "
-            f"{config_data["route_table_id"]}"
+            f"{config_data['route_table_id']}"
         )
 
     if config_data.get("probe_ip"):
@@ -150,7 +150,7 @@ def _validate_config(config_data) -> None:
             ipaddress.ip_address(config_data["probe_ip"])
         except ValueError:
             raise HAScriptConfigError(
-                f"Value for 'probe_ip' is not an IP address: {config_data["probe_ip"]}")
+                f"Value for 'probe_ip' is not an IP address: {config_data['probe_ip']}")
 
     if config_data.get("remote_probe_enabled") and not config_data.get("remote_probe_ip"):
         raise HAScriptConfigError("Mandatory property is missing: remote_probe_ip")
@@ -161,7 +161,7 @@ def _validate_config(config_data) -> None:
         except ValueError:
             raise HAScriptConfigError(
                 f"Value for 'remote_probe_ip' is not an IP address: "
-                f"{config_data["remote_probe_ip"]}")
+                f"{config_data['remote_probe_ip']}")
 
 
 def load_config(tags: Dict[str, Any]) -> HAScriptConfig:
